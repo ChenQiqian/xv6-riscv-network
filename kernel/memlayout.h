@@ -41,6 +41,12 @@
 #define PLIC_MCLAIM(hart) (PLIC + 0x200004 + (hart)*0x2000)
 #define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)
 
+// for pci-e and e1000 card
+// qemu put pcie's configs in that place.
+#define PCIE_ECAM 0x30000000L 
+#define E1000_REG 0x40000000L
+
+
 // the kernel expects there to be RAM
 // for use by the kernel and user pages
 // from physical address 0x80000000 to PHYSTOP.

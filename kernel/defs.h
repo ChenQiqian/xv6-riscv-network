@@ -70,6 +70,10 @@ void            log_write(struct buf*);
 void            begin_op(void);
 void            end_op(void);
 
+
+// pci.c
+void            pciinit(void);
+
 // pipe.c
 int             pipealloc(struct file**, struct file**);
 void            pipeclose(struct pipe*, int);
