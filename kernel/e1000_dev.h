@@ -20,7 +20,7 @@
 #define E1000_RSRPD    (0x02C00/4)  /* RX Small Packet Detect Interrupt */
 #define E1000_TDBAL    (0x03800/4)  /* TX Descriptor Base Address Low - RW */
 #define E1000_TDLEN    (0x03808/4)  /* TX Descriptor Length - RW */
-#define E1000_TDH      (0x03810/4)  /* TX Descriptor Head - RW */
+#define E1000_TDH      (0x03810/4)  /* TX Descriptor Head - RW */ /* on page 317*/
 #define E1000_TDT      (0x03818/4)  /* TX Descripotr Tail - RW */
 #define E1000_MTA      (0x05200/4)  /* Multicast Table Array - RW Array */
 #define E1000_RA       (0x05400/4)  /* Receive Address - RW Array */

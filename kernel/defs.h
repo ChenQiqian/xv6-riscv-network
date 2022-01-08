@@ -1,6 +1,7 @@
 struct buf;
 struct context;
 struct file;
+struct mbuf;
 struct inode;
 struct pipe;
 struct proc;
@@ -21,8 +22,6 @@ void            bunpin(struct buf*);
 void            consoleinit(void);
 void            consoleintr(int);
 void            consputc(int);
-
-
 
 // exec.c
 int             exec(char*, char**);
@@ -72,6 +71,9 @@ void            log_write(struct buf*);
 void            begin_op(void);
 void            end_op(void);
 
+// net.c
+
+void            net_rx(struct mbuf*);
 
 // pci.c
 void            pciinit(void);

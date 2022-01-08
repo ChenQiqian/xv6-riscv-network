@@ -31,7 +31,8 @@ OBJS = \
   $K/virtio_disk.o \
   $K/e1000.o \
   $K/pci.o \
-  $K/net_buf.o
+  $K/net_buf.o \
+  $K/net.o
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin

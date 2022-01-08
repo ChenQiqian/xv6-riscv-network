@@ -37,6 +37,7 @@ pciinit()
     // see [e1000book 5.2 on page 95]
     if(id == 0x100e8086){
       // command and status register.
+      // see [e1000 book p77 & 78]
       // bit 0 : I/O access enable
       // bit 1 : memory access enable
       // bit 2 : enable mastering
