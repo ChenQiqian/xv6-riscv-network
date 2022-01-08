@@ -10,7 +10,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-
+#include "e1000.h"
 
 
 void
