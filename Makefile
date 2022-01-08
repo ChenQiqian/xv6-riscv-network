@@ -32,7 +32,8 @@ OBJS = \
   $K/e1000.o \
   $K/pci.o \
   $K/net_buf.o \
-  $K/net.o
+  $K/net.o \
+  $K/sock.o
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin

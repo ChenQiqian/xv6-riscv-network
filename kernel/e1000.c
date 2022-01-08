@@ -8,7 +8,6 @@
 #include "proc.h"
 #include "defs.h"
 #include "e1000_dev.h"
-#include "e1000.h"
 #include "net_buf.h"
 #include "net.h"
 
@@ -162,7 +161,7 @@ e1000_recv(void)
 }
 
 void
-e1000_intr(void)
+e1000intr(void)
 {
   e1000_recv();
   // tell the e1000 we've seen this interrupt;

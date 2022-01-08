@@ -13,7 +13,9 @@ https://www.intel.cn/content/www/cn/zh/support/articles/000005480/ethernet-produ
 
 https://github.com/torvalds/linux/tree/master/drivers/net/ethernet/intel/e1000
 
-### E1000 网卡的初始化
+### 初始化
+
+#### PCI 初始化
 
 首先，E1000 网卡是 PCI 设备，通过 PCI 的主线与其他设备以及 CPU 等相连接。因此，初始化的第一步是在 PCI 总线上寻找 E1000 网卡。
 
@@ -29,7 +31,26 @@ PCI 总线地址的结构如下图所示：
 
 通过判断偏移位置最开始的 32 位存储的内容来判断这个设备的编号，`[100e:8086]` 就是 E1000 网卡的识别号。
 
-随后设置 BAR 寄存器初始值后，我们会转入 `e1000.c` 对网卡设备初始化。
+随后设置 BAR 寄存器初始值后，我们会调用 `e1000init` 函数转入 `e1000.c` 对网卡设备初始化。
+
+#### E1000 初始化
+
+在函数 `e1000init` 中，我们进行以下操作：
+1. 重置设备，关闭中断
+2. 对传输所用的寄存器、传输环初始化（Transmit initialization）
+3. 对接收所用的寄存器、接收环初始化（Receive initialization）
+4. 设置 E1000 网卡的 MAC 地址
+5. 设置一个空的组播表（Multicast Table）
+6. 设置网卡控制寄存器的控制位
+7. 开启 E1000 中断，设置接收到每个包都触发中断
+
+## 链路层：Ethernet/ARP 部分
+
+
+## 网络层：IP/UDP 部分
+
+
+## 用户接口：socket 部分与系统调用
 
 
 

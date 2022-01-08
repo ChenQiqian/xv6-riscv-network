@@ -22,8 +22,8 @@ struct ip {
   uint16 ip_id;  // identification
   uint16 ip_off; // fragment offset field
   uint8  ip_ttl; // time to live
-  uint8  ip_p;   // protocol
-  uint16 ip_sum; // checksum
+  uint8  ip_p;   // protocol, use below constant
+  uint16 ip_sum; // checksum, in_cksum in net.c
   uint32 ip_src, ip_dst;
 };
 

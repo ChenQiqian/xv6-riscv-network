@@ -45,6 +45,7 @@
 // qemu put pcie's configs in that place.
 #define PCIE_ECAM 0x30000000L 
 #define E1000_REG 0x40000000L
+#define E1000_IRQ 33
 
 
 // the kernel expects there to be RAM

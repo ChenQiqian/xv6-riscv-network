@@ -5,6 +5,7 @@ struct mbuf;
 struct inode;
 struct pipe;
 struct proc;
+struct sock;
 struct spinlock;
 struct sleeplock;
 struct stat;
@@ -22,6 +23,11 @@ void            bunpin(struct buf*);
 void            consoleinit(void);
 void            consoleintr(int);
 void            consputc(int);
+
+// e1000.c 
+void            e1000init(uint32 *);
+int             e1000_transmit(struct mbuf *);
+void            e1000intr(void);
 
 // exec.c
 int             exec(char*, char**);
@@ -123,6 +129,12 @@ void            initlock(struct spinlock*, char*);
 void            release(struct spinlock*);
 void            push_off(void);
 void            pop_off(void);
+
+// sock.c
+
+void sockinit(void);
+int sockalloc(struct file **, uint32, uint16, uint16);
+void sockrecvudp(struct mbuf *, uint32, uint16, uint16);
 
 // sleeplock.c
 void            acquiresleep(struct sleeplock*);
