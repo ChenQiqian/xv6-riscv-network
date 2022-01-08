@@ -29,6 +29,7 @@ main()
     fileinit();      // file table
     virtio_disk_init(); // emulated hard disk
     pciinit();       // search for e1000 card on the PCI bus
+    sockinit();
     userinit();      // first user process
     __sync_synchronize();
     started = 1;
