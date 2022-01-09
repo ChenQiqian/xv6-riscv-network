@@ -2,7 +2,6 @@
 #include "kernel/stat.h"
 #include "kernel/param.h"
 #include "user.h"
-#include "time.h"
 
 uint32 ip2int(char *sIP)
 {
@@ -21,6 +20,9 @@ uint32 ip2int(char *sIP)
     return (v1 << 24) + (v2 << 16) + (v3 << 8) + v4;
 }
 
+
+
+
 int main(int argc, char **argv)
 {
     // if (ping(argv[1]) < 0)
@@ -33,14 +35,13 @@ int main(int argc, char **argv)
         return 0;
     }
     int fd;
-    char obuf[13] = "hello world!";
     uint32 dst = ip2int(argv[1]);
-    uint16 sport = 2000;
-    uint16 dport = 443;
+    int id = getpid();
     int icmp_seq = 0, attempts = 4, send_ok = 4, recv_ok = 4;
-    clock_t start_time = 0, end_time = 0;
+    uint32 start_time = 0, end_time = 0;
 
-    if ((fd = connect(dst, sport, dport)) < 0)
+
+    if ((fd = connect_icmp(dst, 8, 0)) < 0)
     {
         fprintf(2, "ping: connect() failed\n");
         return -1;
@@ -52,27 +53,25 @@ int main(int argc, char **argv)
     for (int i = 0; i < attempts; i++)
     {
         sleep(50);
-        // start_time = clock();
-        if (write(fd, obuf, sizeof(obuf)) < 0)
+        uint16 header[3];
+        header[0] = 0x0800; // icmp type
+        header[1] = id; // icmp code
+        header[2] = icmp_seq;
+        start_time = uptime();
+        if (write(fd, header, sizeof(header)) < 0)
         {
             fprintf(2, "ping: send() failed\n");
             send_ok -= 1;
             continue;
         }
 
-        // end_time = clock();
         int cc = read(fd, ibuf, sizeof(ibuf)-1);
+        end_time = uptime();
         icmp_seq += 1;
-        fprintf(1, "From %s: icmp_seq=%d  ttl=xxx  time=%dms\n", argv[1], icmp_seq, (end_time - start_time) / CLOCKS_PER_SECOND);
+        fprintf(1, "From %s: icmp_seq=%d  ttl=xxx  time=%dms\n", argv[1], icmp_seq, (end_time - start_time) * 10);
         if (cc < 0)
         {
             fprintf(2, "ping: recv() failed\n");
-            recv_ok -= 1;
-            continue;
-        }
-        if (strcmp(obuf, ibuf) || cc != sizeof(obuf))
-        {
-            fprintf(2, "ping didn't receive correct payload\n");
             recv_ok -= 1;
             continue;
         }

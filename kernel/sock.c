@@ -103,7 +103,7 @@ icmp_sockalloc(struct file **f, uint32 raddr, uint8 icmp_type, uint8 icmp_code){
   pos = sockets;
   while (pos) {
     if (pos->ip_type == IPPROTO_ICMP && 
-    pos->raddr == raddr && pos->icmp_id == si->icmp_id) {
+    pos->raddr == raddr) {
       release(&lock);
       goto bad;
     }
@@ -129,7 +129,6 @@ int sockalloc(struct file **f, uint8 ip_type, ...){
     uint32 raddr = va_arg(ap,uint32);
     uint16 lport = va_arg(ap,uint32);
     uint16 rport = va_arg(ap,uint32);
-    printf("udp alloced");
     return udp_sockalloc(f, raddr, lport, rport);
   }
   else if(ip_type == IPPROTO_ICMP) {
@@ -266,6 +265,7 @@ void sockrecvicmp(struct mbuf* m, uint32 raddr, uint8 ttl) {
     if (si->ip_type == IPPROTO_ICMP && si->raddr == raddr)
       goto found;
     si = si->next;
+    si->icmp_recvttl = ttl;
   }
 
   release(&lock);

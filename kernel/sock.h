@@ -12,8 +12,7 @@ struct sock {
   uint16 rport;      // the remote UDP port number
   uint8 icmp_type;
   uint8 icmp_code;
-  uint16 icmp_id;     // the icmp send/receive id
-  uint16 icmp_seq;    // the icmp sequence count(total count, from 1)
+  uint8 icmp_recvttl;
   struct spinlock lock; // protects the rxq
   struct mbufq rxq;  // a queue of packets waiting to be received
 };

@@ -47,7 +47,13 @@ PCI 总线地址的结构如下图所示：
 ## 链路层：Ethernet/ARP 部分
 
 
-## 网络层：IP/UDP 部分
+## 网络层：IP 部分
+
+## 运输层：UDP/ICMP 
+
+### ICMP 协议
+
+需要在宿主机中运行 `sudo sysctl -w net.ipv4.ping_group_range='0 2147483647'` 命令来使得 qemu 可以进行 ICMP 请求
 
 
 ## 用户接口：socket 部分与系统调用
