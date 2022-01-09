@@ -201,7 +201,7 @@ dns()
   dst = (8 << 24) | (8 << 16) | (8 << 8) | (8 << 0);
 
   if((fd = connect(dst, 10000, 53)) < 0){
-    fprintf(2, "ping: connect() failed\n");
+    fprintf(2, "dns: connect() failed\n");
     exit(1);
   }
 

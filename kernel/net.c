@@ -9,6 +9,31 @@ static uint32 local_ip = MAKE_IP_ADDR(10, 0, 2, 15); // qemu's idea of the guest
 static uint8 local_mac[ETHADDR_LEN] = { 0x52, 0x54, 0x00, 0x12, 0x34, 0x56 };
 static uint8 broadcast_mac[ETHADDR_LEN] = { 0xFF, 0XFF, 0XFF, 0XFF, 0XFF, 0XFF };
 
+
+uint32 get_local_ip(){
+  return local_ip;
+}
+
+uint64 get_local_mac() {
+  // use low 48 bits for mac address
+  uint64 ans = 0;
+  for(int i = 0; i < ETHADDR_LEN; i++){
+    ans = ans | (local_mac[i] << (i * 8));
+  }
+  return ans;
+}
+
+
+void set_local_mac(uint64 new_mac) {
+  for(int i = 0; i < ETHADDR_LEN; i++){
+    local_mac[i] = (new_mac >> (i * 8)) & 0xff;
+  }
+}
+
+void set_local_ip(uint32 new_ip) {
+  local_ip = new_ip;
+}
+
 // This code is lifted from FreeBSD's ping.c, and is copyright by the Regents
 // of the University of California.
 static unsigned short
@@ -82,6 +107,24 @@ net_tx_ip(struct mbuf *m, uint8 proto, uint32 dip)
   // now on to the ethernet layer
   net_tx_eth(m, ETHTYPE_IP);
 }
+
+// sends a ICMP packet
+void
+net_tx_icmp(struct mbuf *m, uint32 dip,
+           uint8 type, uint8 code)
+{
+  struct icmp *icmphdr;
+
+  // put the UDP header
+  icmphdr = mbufpushhdr(m, *icmphdr);
+  icmphdr->type = type;
+  icmphdr->code = code;
+  icmphdr->cksum = in_cksum((unsigned char *)icmphdr, m->len); // zero means no checksum is provided
+
+  // now on to the IP layer
+  net_tx_ip(m, IPPROTO_ICMP, dip);
+}
+
 
 // sends a UDP packet
 void
@@ -201,6 +244,44 @@ fail:
   mbuffree(m);
 }
 
+// receives a ICMP packet
+static void
+net_rx_icmp(struct mbuf *m, uint16 len, struct ip *iphdr)
+{
+  struct icmp *icmphdr;
+  uint32 sip;
+  uint16 sport, dport;
+
+
+  icmphdr = mbufpullhdr(m, *icmphdr);
+  if (!icmphdr)
+    goto fail;
+
+
+  // validate lengths reported in headers
+  len -= sizeof(*icmphdr);
+  if (len > m->len)
+    goto fail;
+  
+  // validate checksum
+
+  if (in_cksum((unsigned char *)icmphdr, m->len))
+    panic("wrong checksum");
+
+  // minimum packet size could be larger than the payload
+  mbuftrim(m, m->len - len);
+
+
+  uint8 ttl = iphdr->ip_ttl;
+  uint32 sip = ntohl(iphdr->ip_src);
+
+  sockrecvicmp(m, sip, ttl);
+  return;
+
+fail:
+  mbuffree(m);
+}
+
 // receives an IP packet
 static void
 net_rx_ip(struct mbuf *m)
@@ -224,12 +305,14 @@ net_rx_ip(struct mbuf *m)
   // is the packet addressed to us?
   if (htonl(iphdr->ip_dst) != local_ip)
     goto fail;
-  // can only support UDP
-  if (iphdr->ip_p != IPPROTO_UDP)
-    goto fail;
-
+  // can only support UDP & ICMP
   len = ntohs(iphdr->ip_len) - sizeof(*iphdr);
-  net_rx_udp(m, len, iphdr);
+  if(iphdr->ip_p == IPPROTO_UDP)
+    net_rx_udp(m, len, iphdr);
+  else if(iphdr->ip_p == IPPROTO_ICMP)
+    net_rx_icmp(m, len, iphdr);
+  else
+    goto fail;
   return;
 
 fail:

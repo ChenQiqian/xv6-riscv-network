@@ -2,6 +2,8 @@
 // network system calls.
 //
 
+#include <stdarg.h>
+
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
@@ -24,9 +26,28 @@ sockinit(void)
   initlock(&lock, "socktbl");
 }
 
+int sockalloc(struct file **f, uint8 ip_type, ...){
+  va_list ap;
+  va_start(ap, ip_type);
+  if(ip_type == IPPROTO_UDP) {
+    uint32 raddr = va_arg(ap,uint32);
+    uint16 lport = va_arg(ap,uint16);
+    uint16 rport = va_arg(ap,uint16);
+    return udp_sockalloc(f, raddr, lport, rport);
+  }
+  else if(ip_type == IPPROTO_ICMP) {
+    uint32 raddr = va_arg(ap,uint32);
+    uint8 icmp_type = va_arg(ap,uint8);
+    uint8 icmp_code = va_arg(ap,uint8);
+    return icmp_sockalloc(f, raddr, icmp_type, icmp_code);
+  }
+
+  else
+    panic("unsupported protocal");
+}
 
 int
-sockalloc(struct file **f, uint32 raddr, uint16 lport, uint16 rport)
+udp_sockalloc(struct file **f, uint32 raddr, uint16 lport, uint16 rport)
 {
   struct sock *si, *pos;
 
@@ -55,6 +76,52 @@ sockalloc(struct file **f, uint32 raddr, uint16 lport, uint16 rport)
     if (pos->raddr == raddr &&
         pos->lport == lport &&
 	pos->rport == rport) {
+      release(&lock);
+      goto bad;
+    }
+    pos = pos->next;
+  }
+  si->next = sockets;
+  sockets = si;
+  release(&lock);
+  return 0;
+
+bad:
+  if (si)
+    kfree((char*)si);
+  if (*f)
+    fileclose(*f);
+  return -1;
+}
+
+int
+icmp_sockalloc(struct file **f, uint32 raddr, uint8 icmp_type, uint8 icmp_code){
+  struct sock *si, *pos;
+
+  si = 0;
+  *f = 0;
+  if ((*f = filealloc()) == 0)
+    goto bad;
+  if ((si = (struct sock*)kalloc()) == 0)
+    goto bad;
+
+  // initialize objects
+  si->raddr = raddr;
+  si->icmp_type = icmp_type;
+  si->icmp_code = icmp_code;
+  initlock(&si->lock, "sock");
+  mbufq_init(&si->rxq);
+  (*f)->type = FD_SOCK;
+  (*f)->readable = 1;
+  (*f)->writable = 1;
+  (*f)->sock = si;
+
+  // add to list of sockets
+  acquire(&lock);
+  pos = sockets;
+  while (pos) {
+    if (pos->ip_type == IPPROTO_ICMP && 
+    pos->raddr == raddr && pos->icmp_id == si->icmp_id) {
       release(&lock);
       goto bad;
     }
@@ -143,7 +210,10 @@ sockwrite(struct sock *si, uint64 addr, int n)
     mbuffree(m);
     return -1;
   }
-  net_tx_udp(m, si->raddr, si->lport, si->rport);
+  if(si->ip_type == IPPROTO_UDP)
+    net_tx_udp(m, si->raddr, si->lport, si->rport);
+  else if(si->ip_type == IPPROTO_ICMP)
+    net_tx_icmp(m, si->raddr, si->icmp_type, si->icmp_code);
   return n;
 }
 
@@ -161,7 +231,7 @@ sockrecvudp(struct mbuf *m, uint32 raddr, uint16 lport, uint16 rport)
   acquire(&lock);
   si = sockets;
   while (si) {
-    if (si->raddr == raddr && si->lport == lport && si->rport == rport)
+    if (si->ip_type == IPPROTO_UDP && si->raddr == raddr && si->lport == lport && si->rport == rport)
       goto found;
     si = si->next;
   }
@@ -170,6 +240,35 @@ sockrecvudp(struct mbuf *m, uint32 raddr, uint16 lport, uint16 rport)
   return;
 
 found:
+  acquire(&si->lock);
+  mbufq_pushtail(&si->rxq, m);
+  wakeup(&si->rxq);
+  release(&si->lock);
+  release(&lock);
+}
+
+
+
+
+void sockrecvicmp(struct mbuf* m, uint32 raddr, uint8 ttl) {
+  struct sock *si;
+  acquire(&lock);
+  si = sockets;
+  
+  while(si) {
+    // it's hard to dispatch with process id
+    // because actually they are in data section
+    // so only dispatch with ip addresss
+    if (si->ip_type == IPPROTO_ICMP && si->raddr == raddr)
+      goto found;
+    si = si->next;
+  }
+
+  release(&lock);
+  mbuffree(m);
+  return;
+  
+ found:
   acquire(&si->lock);
   mbufq_pushtail(&si->rxq, m);
   wakeup(&si->rxq);

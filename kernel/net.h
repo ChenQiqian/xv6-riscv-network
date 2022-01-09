@@ -35,6 +35,14 @@ struct ip {
   (((uint32)a << 24) | ((uint32)b << 16) | \
    ((uint32)c << 8) | (uint32)d)
 
+// a ICMP packet header (comes after an IP header).
+struct icmp
+{
+    uint8 type;
+    uint8 code;
+    uint16 cksum; // you need to calculate all data
+};
+
 // a UDP packet header (comes after an IP header).
 struct udp {
   uint16 sport; // source port
