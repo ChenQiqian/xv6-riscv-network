@@ -81,7 +81,7 @@ void            end_op(void);
 void            net_rx(struct mbuf*);
 void            net_tx_udp(struct mbuf*, uint32, uint16, uint16);
 void            net_tx_icmp(struct mbuf*, uint32, uint8, uint8);
-
+int             net_tx_arp(uint16 , uint8 *, uint32 dip);
 
 // pci.c
 void            pciinit(void);

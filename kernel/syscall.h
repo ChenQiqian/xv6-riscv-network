@@ -22,4 +22,5 @@
 #define SYS_close  21
 #define SYS_connect 22
 #define SYS_connect_icmp 23
+#define SYS_connect_arp 24
 

@@ -12,6 +12,9 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
+#include "sock.h"
+#include "net.h"
+
 
 struct devsw devsw[NDEV];
 struct {
@@ -127,10 +130,13 @@ fileread(struct file *f, uint64 addr, int n)
     iunlock(f->ip);
   } else if(f->type == FD_SOCK){
     r = sockread(f->sock, addr, n);
+    if(f->sock->ip_type == IPPROTO_ICMP){
+        struct proc *pr = myproc();
+        copyout(pr->pagetable, addr + r, (char*)&f->sock->icmp_recvttl, sizeof(f->sock->icmp_recvttl));
+    }
   } else {
     panic("fileread");
   }
-
   return r;
 }
 

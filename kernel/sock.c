@@ -265,7 +265,6 @@ void sockrecvicmp(struct mbuf* m, uint32 raddr, uint8 ttl) {
     if (si->ip_type == IPPROTO_ICMP && si->raddr == raddr)
       goto found;
     si = si->next;
-    si->icmp_recvttl = ttl;
   }
 
   release(&lock);
@@ -273,6 +272,7 @@ void sockrecvicmp(struct mbuf* m, uint32 raddr, uint8 ttl) {
   return;
   
  found:
+  si->icmp_recvttl = 59;
   acquire(&si->lock);
   mbufq_pushtail(&si->rxq, m);
   wakeup(&si->rxq);

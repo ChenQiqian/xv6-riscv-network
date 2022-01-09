@@ -25,6 +25,8 @@ int sleep(int);
 int uptime(void);
 int connect(uint32, uint32, uint32);
 int connect_icmp(uint32, uint32, uint32);
+int connect_arp(uint32);
+
 
 
 // ulib.c

@@ -538,3 +538,20 @@ sys_connect_icmp(void)
 
   return fd;
 }
+
+uint64 sys_connect_arp(void)
+{
+  uint32 ipAddr;
+
+  if (argint(0, (int*)&ipAddr) < 0)
+  {
+    return -1;
+  }
+  uint8 broadcast_mac[ETHADDR_LEN] = { 0xFF, 0XFF, 0XFF, 0XFF, 0XFF, 0XFF };
+
+  if (net_tx_arp(ARP_OP_REQUEST, broadcast_mac, ipAddr) < 0)
+  {
+    return -1;
+  }
+  return 0;
+}

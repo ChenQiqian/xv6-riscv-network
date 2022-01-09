@@ -139,9 +139,11 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-	$U/_nettests\
 	$U/_ping\
 	$U/_nslookup\
+	$U/_arptest\
+	$U/_nettests\
+
 
 
 

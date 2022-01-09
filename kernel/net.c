@@ -2,7 +2,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "param.h"
-#include "net.h"
+#include "net.h" 
 #include "net_buf.h"
 
 static uint32 local_ip = MAKE_IP_ADDR(10, 0, 2, 15); // qemu's idea of the guest IP
@@ -145,7 +145,7 @@ net_tx_udp(struct mbuf *m, uint32 dip,
 }
 
 // sends an ARP packet
-static int
+int
 net_tx_arp(uint16 op, uint8 dmac[ETHADDR_LEN], uint32 dip)
 {
   struct mbuf *m;
@@ -170,6 +170,7 @@ net_tx_arp(uint16 op, uint8 dmac[ETHADDR_LEN], uint32 dip)
   arphdr->tip = htonl(dip);
 
   // header is ready, send the packet
+  
   net_tx_eth(m, ETHTYPE_ARP);
   return 0;
 }
@@ -271,6 +272,8 @@ net_rx_icmp(struct mbuf *m, uint16 len, struct ip *iphdr)
 
   uint8 ttl = iphdr->ip_ttl;
   uint32 sip = ntohl(iphdr->ip_src);
+
+  // printf("ttl:%d\n",(int)(ttl));
 
   sockrecvicmp(m, sip, ttl);
   return;

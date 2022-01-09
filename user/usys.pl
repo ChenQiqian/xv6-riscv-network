@@ -38,4 +38,6 @@ entry("sleep");
 entry("uptime");
 entry("connect");
 entry("connect_icmp");
+entry("connect_arp");
+
 

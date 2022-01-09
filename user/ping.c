@@ -92,7 +92,7 @@ int main(int argc, char **argv)
         int cc = read(fd, ibuf, sizeof(ibuf)-1);
         end_time = uptime();
         icmp_seq += 1;
-        fprintf(1, "From %s: icmp_seq=%d  ttl=xxx  time=%dms\n", argv[1], icmp_seq, (end_time - start_time) * 10);
+        fprintf(1, "From %s: icmp_seq=%d time=%dms\n", argv[1], icmp_seq , (end_time - start_time) * 10);
         if (cc < 0)
         {
             fprintf(2, "ping: recv() failed\n");
