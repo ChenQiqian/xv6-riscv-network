@@ -26,26 +26,6 @@ sockinit(void)
   initlock(&lock, "socktbl");
 }
 
-int sockalloc(struct file **f, uint8 ip_type, ...){
-  va_list ap;
-  va_start(ap, ip_type);
-  if(ip_type == IPPROTO_UDP) {
-    uint32 raddr = va_arg(ap,uint32);
-    uint16 lport = va_arg(ap,uint16);
-    uint16 rport = va_arg(ap,uint16);
-    return udp_sockalloc(f, raddr, lport, rport);
-  }
-  else if(ip_type == IPPROTO_ICMP) {
-    uint32 raddr = va_arg(ap,uint32);
-    uint8 icmp_type = va_arg(ap,uint8);
-    uint8 icmp_code = va_arg(ap,uint8);
-    return icmp_sockalloc(f, raddr, icmp_type, icmp_code);
-  }
-
-  else
-    panic("unsupported protocal");
-}
-
 int
 udp_sockalloc(struct file **f, uint32 raddr, uint16 lport, uint16 rport)
 {
@@ -59,6 +39,7 @@ udp_sockalloc(struct file **f, uint32 raddr, uint16 lport, uint16 rport)
     goto bad;
 
   // initialize objects
+  si->ip_type = IPPROTO_UDP;
   si->raddr = raddr;
   si->lport = lport;
   si->rport = rport;
@@ -106,6 +87,7 @@ icmp_sockalloc(struct file **f, uint32 raddr, uint8 icmp_type, uint8 icmp_code){
     goto bad;
 
   // initialize objects
+  si->ip_type = IPPROTO_ICMP;
   si->raddr = raddr;
   si->icmp_type = icmp_type;
   si->icmp_code = icmp_code;
@@ -139,6 +121,28 @@ bad:
     fileclose(*f);
   return -1;
 }
+
+int sockalloc(struct file **f, uint8 ip_type, ...){
+  va_list ap;
+  va_start(ap, ip_type);
+  if(ip_type == IPPROTO_UDP) {
+    uint32 raddr = va_arg(ap,uint32);
+    uint16 lport = va_arg(ap,uint32);
+    uint16 rport = va_arg(ap,uint32);
+    printf("udp alloced");
+    return udp_sockalloc(f, raddr, lport, rport);
+  }
+  else if(ip_type == IPPROTO_ICMP) {
+    uint32 raddr = va_arg(ap,uint32);
+    uint8 icmp_type = va_arg(ap,uint32);
+    uint8 icmp_code = va_arg(ap,uint32);
+    return icmp_sockalloc(f, raddr, icmp_type, icmp_code);
+  }
+
+  else
+    panic("unsupported protocal");
+}
+
 
 void
 sockclose(struct sock *si)

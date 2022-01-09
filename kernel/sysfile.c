@@ -15,6 +15,8 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "sock.h"
+#include "net.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -500,7 +502,34 @@ sys_connect(void)
     return -1;
   }
 
-  if(sockalloc(&f, raddr, lport, rport) < 0)
+  if(sockalloc(&f, IPPROTO_UDP, raddr, lport, rport) < 0)
+    return -1;
+  if((fd=fdalloc(f)) < 0){
+    fileclose(f);
+    return -1;
+  }
+
+  return fd;
+}
+
+// code & type must be determined when create
+uint64
+sys_connect_icmp(void)
+{
+  struct file *f;
+  int fd;
+  uint32 raddr;
+  uint32 type;
+  uint32 code;
+
+  if (argint(0, (int*)&raddr) < 0 ||
+      argint(1, (int*)&type) < 0 || 
+      argint(2, (int*)&code) < 0 
+      ) {
+    return -1;
+  }
+
+  if(sockalloc(&f, IPPROTO_ICMP, raddr, (uint8)type, (uint8)code) < 0)
     return -1;
   if((fd=fdalloc(f)) < 0){
     fileclose(f);

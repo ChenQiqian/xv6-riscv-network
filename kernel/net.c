@@ -249,9 +249,6 @@ static void
 net_rx_icmp(struct mbuf *m, uint16 len, struct ip *iphdr)
 {
   struct icmp *icmphdr;
-  uint32 sip;
-  uint16 sport, dport;
-
 
   icmphdr = mbufpullhdr(m, *icmphdr);
   if (!icmphdr)
