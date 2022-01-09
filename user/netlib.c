@@ -1,52 +1,8 @@
 #include "kernel/types.h"
-#include "kernel/net.h"
 #include "kernel/stat.h"
+#include "kernel/fcntl.h"
+#include "kernel/net.h"
 #include "user/user.h"
-
-//
-// send a UDP packet to the localhost (outside of qemu),
-// and receive a response.
-//
-static void
-ping(uint16 sport, uint16 dport, int attempts)
-{
-  int fd;
-  char *obuf = "a message from xv6!";
-  uint32 dst;
-
-  // 10.0.2.2, which qemu remaps to the external host,
-  // i.e. the machine you're running qemu on.
-  dst = (10 << 24) | (0 << 16) | (2 << 8) | (2 << 0);
-
-  // you can send a UDP packet to any Internet address
-  // by using a different dst.
-  
-  if((fd = connect(dst, sport, dport)) < 0){
-    fprintf(2, "ping: connect() failed\n");
-    exit(1);
-  }
-
-  for(int i = 0; i < attempts; i++) {
-    if(write(fd, obuf, strlen(obuf)) < 0){
-      fprintf(2, "ping: send() failed\n");
-      exit(1);
-    }
-  }
-
-  char ibuf[128];
-  int cc = read(fd, ibuf, sizeof(ibuf)-1);
-  if(cc < 0){
-    fprintf(2, "ping: recv() failed\n");
-    exit(1);
-  }
-
-  close(fd);
-  ibuf[cc] = '\0';
-  // if(strcmp(ibuf, "this is the host!") != 0){
-  //   fprintf(2, "ping didn't receive correct payload\n");
-  //   exit(1);
-  // }
-}
 
 // Encode a DNS name
 static void
@@ -82,9 +38,28 @@ decode_qname(char *qn)
   }
 }
 
+
+uint32 ip2int(char *sIP)
+{
+    int i = 0;
+    uint32 v1 = 0, v2 = 0, v3 = 0, v4 = 0;
+    for (i = 0; sIP[i] != '\0'; ++i)
+        ;
+    for (i = 0; sIP[i] != '.'; ++i)
+        v1 = v1 * 10 + sIP[i] - '0';
+    for (++i; sIP[i] != '.'; ++i)
+        v2 = v2 * 10 + sIP[i] - '0';
+    for (++i; sIP[i] != '.'; ++i)
+        v3 = v3 * 10 + sIP[i] - '0';
+    for (++i; sIP[i] != '\0'; ++i)
+        v4 = v4 * 10 + sIP[i] - '0';
+    return (v1 << 24) + (v2 << 16) + (v3 << 8) + v4;
+}
+
+
 // Make a DNS request
 static int
-dns_req(uint8 *obuf)
+dns_req(uint8 *obuf, char *s)
 {
   int len = 0;
 
@@ -97,7 +72,6 @@ dns_req(uint8 *obuf)
 
   // qname part of question
   char *qname = (char *) (obuf + sizeof(struct dns));
-  char *s = "pdos.csail.mit.edu.";
   encode_qname(qname, s);
   len += strlen(qname) + 1;
 
@@ -111,24 +85,25 @@ dns_req(uint8 *obuf)
 }
 
 // Process DNS response
-static void
-dns_rep(uint8 *ibuf, int cc)
+static uint32
+dns_rep(uint8 *ibuf, int cc, uint32 q)
 {
   struct dns *hdr = (struct dns *) ibuf;
   int len;
   char *qname = 0;
   int record = 0;
+  uint32 ip_receive;
 
   if(!hdr->qr) {
+    fprintf(2, "Not a DNS response for %d\n", ntohs(hdr->id));
     exit(1);
-    printf("Not a DNS response for %d\n", ntohs(hdr->id));
   }
 
   if(hdr->id != htons(6828))
-    printf("DNS wrong id: %d\n", ntohs(hdr->id));
+    fprintf(2, "DNS wrong id: %d\n", ntohs(hdr->id));
 
   if(hdr->rcode != 0) {
-    printf("DNS rcode error: %x\n", hdr->rcode);
+    fprintf(2, "DNS rcode error: %x\n", hdr->rcode);
     exit(1);
   }
 
@@ -160,33 +135,47 @@ dns_rep(uint8 *ibuf, int cc)
 
     struct dns_data *d = (struct dns_data *) (ibuf+len);
     len += sizeof(struct dns_data);
-    // printf("type %d ttl %d len %d\n", ntohs(d->type), ntohl(d->ttl), ntohs(d->len));
+    if(!q)
+        printf("type %d ttl %d len %d:\n", ntohs(d->type), ntohl(d->ttl), ntohs(d->len));
     if(ntohs(d->type) == ARECORD && ntohs(d->len) == 4) {
       record = 1;
-      printf("DNS arecord for %s is ", qname ? qname : "" );
+      if(!q)
+        fprintf(1, "  DNS arecord for %s is ", qname ? qname : "" );
       uint8 *ip = (ibuf+len);
-      printf("%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
-      if(ip[0] != 128 || ip[1] != 52 || ip[2] != 129 || ip[3] != 126) {
-        printf("wrong ip address");
-        exit(1);
-      }
-      len += 4;
+      if(!q)
+        printf("%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+      ip_receive = (ip[0] << 24) + (ip[1] << 16) + (ip[2] << 8) + ip[3];
+      len += ntohs(d->len);
+    }
+    else if(ntohs(d->type) == CNAME) {
+      if(!q)
+        fprintf(1, "  DNS cname record.");
+      len += ntohs(d->len);
     }
   }
 
   if(len != cc) {
-    printf("Processed %d data bytes but received %d\n", len, cc);
+    fprintf(2,"Processed %d data bytes but received %d\n", len, cc);
     exit(1);
   }
   if(!record) {
-    printf("Didn't receive an arecord\n");
+    fprintf(2,"Didn't receive an arecord\n");
     exit(1);
   }
+  return ip_receive;
 }
 
-static void
-dns_parser()
+
+
+uint32
+dns(char *ss,uint32 q)
 {
+  // add a point on the 
+  char s[100];
+  memmove(s,ss,strlen(ss));
+  s[strlen(s)+1] = '\0';
+  s[strlen(s)] = '.';
+  
   #define N 1000
   uint8 obuf[N];
   uint8 ibuf[N];
@@ -205,7 +194,7 @@ dns_parser()
     exit(1);
   }
 
-  len = dns_req(obuf);
+  len = dns_req(obuf,s);
 
   if(write(fd, obuf, len) < 0){
     fprintf(2, "dns: send() failed\n");
@@ -216,47 +205,8 @@ dns_parser()
     fprintf(2, "dns: recv() failed\n");
     exit(1);
   }
-  dns_rep(ibuf, cc);
+  uint32 ans = dns_rep(ibuf, cc, q);
 
   close(fd);
+  return ans;
 }  
-
-int
-main(int argc, char *argv[])
-{
-  int i, ret;
-  uint16 dport = NET_TESTS_PORT;
-
-  printf("nettests running on port %d\n", dport);
-
-  printf("testing one ping: ");
-  ping(2000, dport, 2);
-  printf("OK\n");
-
-  printf("testing single-process pings: ");
-  for (i = 0; i < 100; i++)
-    ping(2000, dport, 1);
-  printf("OK\n");
-
-  printf("testing multi-process pings: ");
-  for (i = 0; i < 10; i++){
-    int pid = fork();
-    if (pid == 0){
-      ping(2000 + i + 1, dport, 1);
-      exit(0);
-    }
-  }
-  for (i = 0; i < 10; i++){
-    wait(&ret);
-    if (ret != 0)
-      exit(1);
-  }
-  printf("OK\n");
-
-  printf("testing DNS\n");
-  dns_parser();
-  printf("DNS OK\n");
-
-  printf("all tests passed.\n");
-  exit(0);
-}

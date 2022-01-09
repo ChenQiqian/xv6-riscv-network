@@ -43,3 +43,7 @@ void free(void*);
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+
+// netlib.c
+uint32 ip2int(char *);
+uint32 dns(char *, uint32);

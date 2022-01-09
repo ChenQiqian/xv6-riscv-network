@@ -99,6 +99,7 @@ struct dns_question {
 } __attribute__((packed));
 
 #define ARECORD (0x0001)
+#define CNAME   (0x0005)
 #define QCLASS  (0x0001)
 
 struct dns_data {
