@@ -11,7 +11,6 @@ E1000 是 QEMU 模拟出来的网卡，具体来说对应着 https://pdos.csail.
 https://www.intel.cn/content/www/cn/zh/support/articles/000005480/ethernet-products.html
 
 
-https://github.com/torvalds/linux/tree/master/drivers/net/ethernet/intel/e1000
 
 ### 初始化
 
@@ -44,8 +43,21 @@ PCI 总线地址的结构如下图所示：
 6. 设置网卡控制寄存器的控制位
 7. 开启 E1000 中断，设置接收到每个包都触发中断
 
+## 驱动程序
+
+在 `e1000.c` 中，程序会直接与网卡进行交互。
+
+上层的程序（网络层以及 ARP）会调用 `e1000_transmit` 传输包，而 e1000 的网卡通过中断，在接受包的时候会调用 `e1000_recv` 收取包，并进一步调用上层程序处理网络包的函数
+
+传输包给网卡的 `e1000_transmit` 函数会在传输环尾指针位置放置缓冲区的包，然后调整尾指针，将包传输给网卡。
+
+从网卡中读取包的 `e1000_recv` 函数会读取所有的并非硬件正在占据的包，并调用 `nex_rx` 函数在链路层和网络层接收包。
+
 ## 链路层：Ethernet/ARP 部分
 
+
+
+主要代码在 `net.c`
 
 ## 网络层：IP 部分
 
@@ -56,7 +68,24 @@ PCI 总线地址的结构如下图所示：
 需要在宿主机中运行 `sudo sysctl -w net.ipv4.ping_group_range='0 2147483647'` 命令来使得 qemu 可以进行 ICMP 请求
 
 
+### UDP 协议
+
 ## 用户接口：socket 部分与系统调用
+
+仿照 Linux 的布置，我们将套接字拆分为两个部分：`socket` 和 `sock`。
+
+这两部分的主要区别是：
++ socket 部分面向用户，负责向外提供接口。
++ sock 部分面向系统底层，负责收发和数据管理。
+
+这样拆分的好处是可以轻易地增加协议，可扩展性很好。将来的同学写 TCP 的时候或许就不会非常的难受。
+
+
+### socket 部分
+
+### sock 部分
+
+### 中间连接：proto 部分
 
 
 
