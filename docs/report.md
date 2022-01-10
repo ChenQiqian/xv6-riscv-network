@@ -1,5 +1,11 @@
 # xv6-riscv 改进：网络系统
 
+## 使用
+
+在 Ubuntu 20.04 下配置好 xv6 环境运行 `make qemu` 即可。
+
+> 注意：需要在宿主机中运行 `sudo sysctl -w net.ipv4.ping_group_range='0 2147483647'` 命令来使得 qemu 模拟的网络可以进行 ICMP 请求。
+
 ## 网卡硬件-初始化
 
 E1000 是 QEMU 模拟出来的网卡，具体来说对应着 https://pdos.csail.mit.edu/6.828/2021/readings/8254x_GBe_SDM.pdf 中的 82540EM 网卡。
@@ -82,9 +88,6 @@ IP 协议检测到是 UDP/ICMP 运输层协议的话，就会调用对应的 `ne
 发送：
 
 当套接字将要发送 UDP/ICMP 包时，就会调用 `net_tx_udp`/`net_tx_icmp`，该函数根据调用信息在包前面附上 UDP/ICMP 头之后，转入 `net_tx_ip` 处理。
-
-
-注意：需要在宿主机中运行 `sudo sysctl -w net.ipv4.ping_group_range='0 2147483647'` 命令来使得 qemu 模拟的网络可以进行 ICMP 请求。
 
 
 ## 用户接口：socket 部分与系统调用
